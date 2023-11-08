@@ -5,6 +5,7 @@ database:
   address: "127.0.0.1:3306"
   user: "root"
   password: ""
+  name: "tester_example_tasks_db"
 
 server:
-  address: "localhost:8080"
+  address: "http://127.0.0.1:8080"

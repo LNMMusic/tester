@@ -89,29 +89,17 @@ type ApplicationDefault struct {
 // TearDown tears down the application.
 // - defer function, resources close in reverse order
 func (a *ApplicationDefault) TearDown() (err error) {
-	defer func() {
-		e := a.casesFile.Close()
-		if e != nil {
-			err = fmt.Errorf("%w. %v. %w", ErrApplicationTearDown, e, err)
-		}
-	}()
+	// close database
+	err = a.db.Close()
+	if err != nil {
+		err = fmt.Errorf("%w. %v", ErrApplicationTearDown, err)
+	}
+	// close cases file
+	e := a.casesFile.Close()
+	if e != nil {
+		err = fmt.Errorf("%w. %v. %w", ErrApplicationTearDown, e, err)
+	}
 
-	defer func() {
-		e := a.db.Close()
-		if e != nil {
-			err = fmt.Errorf("%w. %v. %w", ErrApplicationTearDown, e, err)
-		}
-	}()
-	// // close database
-	// e := a.db.Close()
-	// if e != nil {
-	// 	err = fmt.Errorf("%w. %v. %w", ErrApplicationTearDown, e, err)
-	// }
-	// // close cases file
-	// e = a.casesFile.Close()
-	// if e != nil {
-	// 	err = fmt.Errorf("%w. %v. %w", ErrApplicationTearDown, e, err)
-	// }
 	return
 }
 
@@ -136,9 +124,7 @@ func (a *ApplicationDefault) SetUp() (err error) {
 	a.reader = cases.NewReaderJSON(dc, ch)
 	// - tester
 	ex := cases.NewDbExecuterMySQL(a.db)
-	rq := cases.NewRequesterDefault(a.serverAddress, &http.Client{
-		Timeout: 5,
-	})
+	rq := cases.NewRequesterDefault(a.serverAddress, &http.Client{})
 	rp := cases.NewReporterDefault()
 	a.tester = *internal.NewTester(ex, rq, rp)
 
@@ -157,6 +143,7 @@ func (a *ApplicationDefault) Run() (err error) {
 		c, err = a.reader.Read()
 		if err != nil {
 			if err == cases.ErrEndOfLine {
+				err = nil
 				break
 			}
 			return

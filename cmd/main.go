@@ -23,19 +23,15 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-
 	// - new application
 	a := application.NewApplicationDefault(cfg)
-	
-	// - tear down (defer)
-	a.TearDown()
-	
+	// - tear down
+	defer a.TearDown()
 	// - set up
 	if err := a.SetUp(); err != nil {
 		fmt.Println(err)
 		return
 	}
-	
 	// - run
 	if err := a.Run(); err != nil {
 		fmt.Println(err)

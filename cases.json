@@ -1,0 +1,105 @@
+[
+    {
+        "case_name": "success to get task by id",
+        "database": {
+            "set_up": [
+                "INSERT INTO `tasks` (`title`, `description`) VALUES ('task 1', 'description 1')"
+            ],
+            "tear_down": [
+                "DELETE FROM `tasks`",
+                "ALTER TABLE `tasks` AUTO_INCREMENT = 1"
+            ]
+        },
+        "request": {
+            "method": "GET",
+            "path": "/tasks/1",
+            "query": {},
+            "body": {},
+            "header": {}
+        },
+        "response": {
+            "code": 200,
+            "body": {
+                "message": "task found",
+                "data": {
+                    "id": 1,
+                    "title": "task 1",
+                    "description": "description 1",
+                    "done": false
+                }
+            },
+            "header": {
+                "Content-Type": [
+                    "application/json"
+                ]
+            }
+        }
+    },
+    {
+        "case_name": "fail to get task by id",
+        "database": {
+            "set_up": [],
+            "tear_down": []
+        },
+        "request": {
+            "method": "GET",
+            "path": "/tasks/1",
+            "query": {},
+            "body": {},
+            "header": {}
+        },
+        "response": {
+            "code": 404,
+            "body": {
+                "status": "Not Found",
+                "message": "task not found"
+            },
+            "header": {
+                "Content-Type": [
+                    "application/json"
+                ]
+            }
+        }
+    },
+    {
+        "case_name": "success to create a task",
+        "database": {
+            "set_up": [],
+            "tear_down": [
+                "DELETE FROM `tasks`",
+                "ALTER TABLE `tasks` AUTO_INCREMENT = 1"
+            ]
+        },
+        "request": {
+            "method": "POST",
+            "path": "/tasks",
+            "query": {},
+            "body": {
+                "title": "task 1",
+                "description": "description 1"
+            },
+            "header": {
+                "Content-Type": [
+                    "application/json"
+                ]
+            }
+        },
+        "response": {
+            "code": 201,
+            "body": {
+                "message": "task created",
+                "data": {
+                    "id": 1,
+                    "title": "task 1",
+                    "description": "description 1",
+                    "done": false
+                }
+            },
+            "header": {
+                "Content-Type": [
+                    "application/json"
+                ]
+            }
+        }
+    }
+]

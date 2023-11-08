@@ -30,19 +30,30 @@ func (r *ReporterDefault) Report(c *Case, w *http.Response) (err error) {
 	actualHeader := w.Header
 
 	// verify
-	fmt.Println("> case:", c.Name)
-	if expectedCode != actualCode {
-		fmt.Println("- expected code: ", expectedCode)
-		fmt.Println("- actual code: ", actualCode)
+	validCode := expectedCode == actualCode
+	validBody := reflect.DeepEqual(expectedBody, actualBody)
+	validHeader := reflect.DeepEqual(expectedHeader, actualHeader)
+	if !(validCode && validBody && validHeader) {
+		fmt.Printf("> Case '%s': FAIL\n", c.Name)
+
+		if !validCode {
+			fmt.Printf("- expected code: %d\n", expectedCode)
+			fmt.Printf("- actual code: %d\n", actualCode)
+		}
+		if !validBody {
+			fmt.Printf("- expected body: %v\n", expectedBody)
+			fmt.Printf("- actual body: %v\n", actualBody)
+		}
+		if !validHeader {
+			fmt.Printf("- expected header: %v\n", expectedHeader)
+			fmt.Printf("- actual header: %v\n", actualHeader)
+		}
+		fmt.Println()
+		return
 	}
-	if !reflect.DeepEqual(expectedBody, actualBody) {
-		fmt.Println("- expected body: ", expectedBody)
-		fmt.Println("- actual body: ", actualBody)
-	}
-	if !reflect.DeepEqual(expectedHeader, actualHeader) {
-		fmt.Println("- expected header: ", expectedHeader)
-		fmt.Println("- actual header: ", actualHeader)
-	}
-	
+
+	fmt.Printf("> Case '%s': PASS\n", c.Name)
+	fmt.Println()
+
 	return nil
 }

@@ -23,6 +23,8 @@ type ConfigApplicationDefaultYAML struct {
 		User string `yaml:"user"`
 		// database password
 		Password string `yaml:"password"`
+		// database name
+		Name string `yaml:"name"`
 	} `yaml:"database"`
 	// server config
 	Server struct {
@@ -57,6 +59,7 @@ func NewConfigApplicationDefaultFromYAML(filePath string) (cfg *ConfigApplicatio
 			Addr: cfgYAML.Database.Address,
 			User: cfgYAML.Database.User,
 			Passwd: cfgYAML.Database.Password,
+			DBName: cfgYAML.Database.Name,
 		},
 		ServerAddress: cfgYAML.Server.Address,
 	}

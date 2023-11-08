@@ -1,0 +1,10 @@
+cases:
+  file_path: "./cases.json"
+
+database:
+  address: "127.0.0.1:3306"
+  user: "root"
+  password: ""
+
+server:
+  address: "localhost:8080"

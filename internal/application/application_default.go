@@ -132,6 +132,9 @@ func (a *ApplicationDefault) Run() (err error) {
 	ts := internal.NewTester(rd, ct)
 
 	// run
+	// - stream cases
+	go rd.Stream()
+	// - test cases
 	err = ts.Run()
 	if err != nil {
 		err = fmt.Errorf("%w - %v", ErrApplicationRun, err)

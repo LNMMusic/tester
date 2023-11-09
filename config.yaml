@@ -1,5 +1,5 @@
-cases:
-  file_path: "./cases.json"
+server:
+  address: "http://127.0.0.1:8080"
 
 database:
   address: "127.0.0.1:3306"
@@ -7,5 +7,11 @@ database:
   password: ""
   name: "tester_example_tasks_db"
 
-server:
-  address: "http://127.0.0.1:8080"
+cases:
+  reader:
+    file_path: "./cases.json"
+    batch_size: 10
+  reporter:
+    excluded_headers:
+      - "Content-Length"
+      - "Date"

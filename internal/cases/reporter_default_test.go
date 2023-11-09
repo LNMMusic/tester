@@ -15,7 +15,7 @@ import (
 func TestReporterDefault_Report(t *testing.T) {
 	t.Run("case 1 - success report", func(t *testing.T) {
 		// arrange
-		rp := cases.NewReporterDefault()
+		rp := cases.NewReporterDefault(nil)
 
 		// act
 		w := &http.Response{
@@ -52,9 +52,50 @@ func TestReporterDefault_Report(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("case 2 - failed report - code", func(t *testing.T) {
+	t.Run("case 2 - success report - excluded headers", func(t *testing.T) {
 		// arrange
-		rp := cases.NewReporterDefault()
+		rp := cases.NewReporterDefault([]string{"Date", "Content-Length"})
+
+		// act
+		w := &http.Response{
+			StatusCode: 200,
+			Body: io.NopCloser(strings.NewReader(
+				`{"message":"success","data":{"string":"string","int":1,"float_zero":1,"float":1.1,"bool":true}}`,
+			)),
+			Header: http.Header{
+				"Content-Type": {"application/json"},
+				"Date": {"Mon, 02 Jan 2006 15:04:05 GMT"},
+				"Content-Length": {"95"},
+			},
+		}
+		c := &cases.Case{
+			Name: "case 2",
+			Response: cases.Response{
+				Code: 200,
+				Body: map[string]any{
+					"message": "success",
+					"data": map[string]any{
+						"string": "string",
+						"int": 1.0,
+						"float_zero": 1.0,
+						"float": 1.1,
+						"bool": true,
+					},
+				},
+				Header: http.Header{
+					"Content-Type": {"application/json"},
+				},
+			},
+		}
+		err := rp.Report(c, w)
+
+		// assert
+		require.NoError(t, err)
+	})
+
+	t.Run("case 3 - failed report - code", func(t *testing.T) {
+		// arrange
+		rp := cases.NewReporterDefault(nil)
 
 		// act
 		w := &http.Response{
@@ -91,9 +132,9 @@ func TestReporterDefault_Report(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("case 3 - failed report - body", func(t *testing.T) {
+	t.Run("case 4 - failed report - body", func(t *testing.T) {
 		// arrange
-		rp := cases.NewReporterDefault()
+		rp := cases.NewReporterDefault(nil)
 
 		// act
 		w := &http.Response{
@@ -130,9 +171,9 @@ func TestReporterDefault_Report(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("case 4 - failed report - header", func(t *testing.T) {
+	t.Run("case 5 - failed report - header", func(t *testing.T) {
 		// arrange
-		rp := cases.NewReporterDefault()
+		rp := cases.NewReporterDefault(nil)
 
 		// act
 		w := &http.Response{
@@ -158,10 +199,7 @@ func TestReporterDefault_Report(t *testing.T) {
 						"bool": true,
 					},
 				},
-				Header: http.Header{
-					"Content-Type": {"application/json"},
-					"Content-Length": {"0"},
-				},
+				Header: http.Header{},
 			},
 		}
 		err := rp.Report(c, w)
@@ -170,9 +208,9 @@ func TestReporterDefault_Report(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("case 5 - error decode body", func(t *testing.T) {
+	t.Run("case 6 - error decode body", func(t *testing.T) {
 		// arrange
-		rp := cases.NewReporterDefault()
+		rp := cases.NewReporterDefault(nil)
 
 		// act
 		w := &http.Response{

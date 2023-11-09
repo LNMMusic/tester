@@ -8,12 +8,25 @@ import (
 )
 
 // NewReporterDefault creates a new default reporter.
-func NewReporterDefault() *ReporterDefault {
-	return &ReporterDefault{}
+func NewReporterDefault(excludedHeaders []string) *ReporterDefault {
+	// default excluded headers
+	defaultExcludedHeaders := []string{"Date", "Content-Length"}
+	if excludedHeaders != nil {
+		if len(excludedHeaders) > 0 {
+			defaultExcludedHeaders = excludedHeaders
+		}
+	}
+
+	return &ReporterDefault{
+		excludedHeaders: defaultExcludedHeaders,
+	}
 }
 
 // ReporterDefault is the default reporter of test cases.
-type ReporterDefault struct {}
+type ReporterDefault struct {
+	// excluded headers
+	excludedHeaders []string
+}
 
 func (r *ReporterDefault) Report(c *Case, w *http.Response) (err error) {
 	// expectations
@@ -28,6 +41,12 @@ func (r *ReporterDefault) Report(c *Case, w *http.Response) (err error) {
 		return err
 	}
 	actualHeader := w.Header
+
+	// exclusions
+	for _, h := range r.excludedHeaders {
+		delete(expectedHeader, h)
+		delete(actualHeader, h)
+	}
 
 	// verify
 	validCode := expectedCode == actualCode

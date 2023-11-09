@@ -23,67 +23,103 @@ var (
 	ErrApplicationTearDown = errors.New("application: tear down error")
 )
 
-// ConfigApplicationDefault is the config of the default application.
-type ConfigApplicationDefault struct {
-	// cases file path
-	CasesFilePath string
-	// database config
-	Database *mysql.Config
-	// http server address
-	ServerAddress string
-}
-
 // NewApplicationDefault creates a new application.
-func NewApplicationDefault(cfg *ConfigApplicationDefault) (a *ApplicationDefault) {
+func NewApplicationDefault(cfg *Config) (a *ApplicationDefault) {
 	// default config
-	defaultCfg := &ConfigApplicationDefault{
-		CasesFilePath: "cases.json",
-		Database: &mysql.Config{},
-		ServerAddress: "http://localhost:8080",
+	defaultConfig := &Config{
+		Server: ServerConfig{
+			Address: "http://localhost:8080",
+		},
+		Database: &DatabaseConfig{
+			Address:  "localhost:3306",
+		},
+		Cases: CasesConfig{
+			Reader: struct {
+				FilePath  string
+				BatchSize int
+			}{
+				FilePath:  "./cases.json",
+				BatchSize: 10,
+			},
+		},
 	}
 	if cfg != nil {
-		if cfg.CasesFilePath != "" {
-			defaultCfg.CasesFilePath = cfg.CasesFilePath
+		if cfg.Server.Address != "" {
+			defaultConfig.Server.Address = cfg.Server.Address
 		}
 		if cfg.Database != nil {
-			defaultCfg.Database = cfg.Database
+			defaultConfig.Database = cfg.Database
 		}
-		if cfg.ServerAddress != "" {
-			defaultCfg.ServerAddress = cfg.ServerAddress
+		if cfg.Cases.Reader.FilePath != "" {
+			defaultConfig.Cases.Reader.FilePath = cfg.Cases.Reader.FilePath
+		}
+		if cfg.Cases.Reader.BatchSize > 0 {
+			defaultConfig.Cases.Reader.BatchSize = cfg.Cases.Reader.BatchSize
+		}
+		if cfg.Cases.Reporter.ExcludedHeaders != nil {
+			defaultConfig.Cases.Reporter.ExcludedHeaders = cfg.Cases.Reporter.ExcludedHeaders
 		}
 	}
 
 	// application
-	a = &ApplicationDefault{
-		casesFilePath: defaultCfg.CasesFilePath,
-		database: defaultCfg.Database,
-		serverAddress: defaultCfg.ServerAddress,
-	}
+	a = &ApplicationDefault{Config: defaultConfig}
 	return
 }
 
+// Config is the config of the application.
+type ServerConfig struct {
+	// server address
+	Address string
+}
+type DatabaseConfig struct {
+	// database address
+	Address string
+	// database user
+	User string
+	// database password
+	Password string
+	// database name
+	Name string
+}
+type CasesConfig struct {
+	Reader struct {
+		// cases file path
+		FilePath string
+		// batch size
+		BatchSize int
+	}
+	Reporter struct {
+		// excluded headers
+		ExcludedHeaders []string
+	}
+}
+// Config is the config of the application.
+type Config struct {
+	// server
+	Server ServerConfig
+	// database
+	Database *DatabaseConfig
+	// Cases
+	Cases CasesConfig
+}
 
 // ApplicationDefault is the default implementation of Application.
 // - cases: independent
 // - database: centralized
 // - http server: centralized
 type ApplicationDefault struct {
-	// cases file
-	casesFilePath string
-	casesFile *os.File
-	
-	// database config
-	database *mysql.Config
-	db *sql.DB
-	
-	// http server config
-	serverAddress string
+	// configuration of the application
+	*Config
 
-	// reader is the reader of cases.
+	// instances of the application
+	// - database
+	db *sql.DB
+	// - cases file
+	casesFile *os.File
+	// - reader
 	reader *cases.ReaderJSON
-	
-	// tester is the tester controller.
-	tester internal.Tester
+	// - tester
+	tester *internal.Tester
 }
 
 // TearDown tears down the application.
@@ -103,30 +139,39 @@ func (a *ApplicationDefault) TearDown() (err error) {
 	return
 }
 
-
 // SetUp sets up the application.
 func (a *ApplicationDefault) SetUp() (err error) {
 	// dependencies
 	// - cases file
-	a.casesFile, err = os.Open(a.casesFilePath)
+	a.casesFile, err = os.Open(a.Config.Cases.Reader.FilePath)
 	if err != nil {
 		return
 	}
-	// - database
-	a.db, err = sql.Open("mysql", a.database.FormatDSN())
+	// - database: connection
+	cfg := &mysql.Config{
+		Addr: a.Config.Database.Address,
+		User: a.Config.Database.User,
+		Passwd: a.Config.Database.Password,
+		DBName: a.Config.Database.Name,
+	}
+	a.db, err = sql.Open("mysql", cfg.FormatDSN())
 	if err != nil {
 		return
 	}
-	
+	// - database: ping
+	err = a.db.Ping()
+	if err != nil {
+		return
+	}
 	// - reader
 	dc := json.NewDecoder(a.casesFile)
-	ch := make(chan cases.CaseErr, 10)
+	ch := make(chan cases.CaseErr, a.Config.Cases.Reader.BatchSize)
 	a.reader = cases.NewReaderJSON(dc, ch)
 	// - tester
 	ex := cases.NewDbExecuterMySQL(a.db)
-	rq := cases.NewRequesterDefault(a.serverAddress, &http.Client{})
-	rp := cases.NewReporterDefault()
-	a.tester = *internal.NewTester(ex, rq, rp)
+	rq := cases.NewRequesterDefault(a.Config.Server.Address, &http.Client{})
+	rp := cases.NewReporterDefault(a.Cases.Reporter.ExcludedHeaders)
+	a.tester = internal.NewTester(ex, rq, rp)
 
 	return
 }

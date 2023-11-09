@@ -4,17 +4,16 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/go-sql-driver/mysql"
 	"gopkg.in/yaml.v2"
 )
 
 // ConfigApplicationDefaultYAML is the config of the default application from yaml file.
 type ConfigApplicationDefaultYAML struct {
-	// cases config
-	Cases struct {
-		// cases file path
-		FilePath string `yaml:"file_path"`
-	} `yaml:"cases"`
+	// server config
+	Server struct {
+		// server address
+		Address string `yaml:"address"`
+	} `yaml:"server"`
 	// database config
 	Database struct {
 		// database address
@@ -26,16 +25,21 @@ type ConfigApplicationDefaultYAML struct {
 		// database name
 		Name string `yaml:"name"`
 	} `yaml:"database"`
-	// server config
-	Server struct {
-		// server address
-		Address string `yaml:"address"`
-	} `yaml:"server"`
+	// cases config
+	Cases struct {
+		Reader struct {
+			FilePath string `yaml:"file_path"`
+			BatchSize int `yaml:"batch_size"`
+		} `yaml:"reader"`
+		Reporter struct {
+			ExcludedHeaders []string `yaml:"excluded_headers"`
+		} `yaml:"reporter"`
+	} `yaml:"cases"`
 }
 
 
 // ConfigApplicationDefault is the config of the default application.
-func NewConfigApplicationDefaultFromYAML(filePath string) (cfg *ConfigApplicationDefault, err error) {
+func NewConfigApplicationDefaultFromYAML(filePath string) (cfg *Config, err error) {
 	// config
 	var cfgYAML ConfigApplicationDefaultYAML
 
@@ -53,16 +57,30 @@ func NewConfigApplicationDefaultFromYAML(filePath string) (cfg *ConfigApplicatio
 	}
 
 	// serialize
-	cfg = &ConfigApplicationDefault{
-		CasesFilePath: cfgYAML.Cases.FilePath,
-		Database: &mysql.Config{
-			Addr: cfgYAML.Database.Address,
-			User: cfgYAML.Database.User,
-			Passwd: cfgYAML.Database.Password,
-			DBName: cfgYAML.Database.Name,
+	cfg = &Config{
+		Server: ServerConfig{
+			Address: cfgYAML.Server.Address,
 		},
-		ServerAddress: cfgYAML.Server.Address,
+		Database: &DatabaseConfig{
+			Address: cfgYAML.Database.Address,
+			User: cfgYAML.Database.User,
+			Password: cfgYAML.Database.Password,
+			Name: cfgYAML.Database.Name,
+		},
+		Cases: CasesConfig{
+			Reader: struct {
+				FilePath string
+				BatchSize int
+			}{
+				FilePath: cfgYAML.Cases.Reader.FilePath,
+				BatchSize: cfgYAML.Cases.Reader.BatchSize,
+			},
+			Reporter: struct {
+				ExcludedHeaders []string
+			}{
+				ExcludedHeaders: cfgYAML.Cases.Reporter.ExcludedHeaders,
+			},
+		},
 	}
-
 	return
 }
